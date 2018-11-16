@@ -1,0 +1,152 @@
+<template>
+    <div>
+        <header id="iframeHeader" class="header-wrap">
+            <header class="mint-header">
+                <div class="mint-header-button is-left" @click="back()">
+                    <button class="mint-button backicon mint-button--default mint-button--normal">
+                        <i class="mintui mintui-back"></i>
+                    </button>
+                </div>
+                <h1 class="mint-header-title">人气推荐</h1>
+                <div class="mint-header-button is-right"></div>
+            </header>
+            <div class="ad-wrapper" v-show="curPage.upAdcontent">
+                <p>{{curPage.upAdcontent}}</p>
+                <div class="go-btn" @click="getNextH5()">更多产品 点击前往</div>
+            </div>
+        </header>
+        <iframe id="jbiframe" class="iframe" :src="link"></iframe>
+    </div>
+</template>
+
+<script>
+export default {
+    data() {
+        return {
+            link: "",
+            arr_H5Page: "",
+            curPage: "",
+            history: []
+        };
+    },
+    methods: {
+        back() {
+            if (this.history.length > 0) {
+                this.link = this.history.pop();
+                this.getCurPage();
+                this.setHeight();
+                return;
+            }
+            let homePage = this.$api.getSessionStorage("homePage");
+            this.$router.replace(homePage);
+        },
+        getNextH5() {
+            let param = {
+                applyId: this.curPage.applyId,
+                h5ProductId: this.curPage.h5ProductId
+            };
+            this.$api.vkcPost("supermarketloan/distribute/loan/nextH5Page", param).then(res => {
+                this.history.push(this.link);
+                this.link = res.adPage;
+                this.$route.params.url = this.link;
+                this.curPage = res;
+                this.setHeight();
+                _paq.push(["trackEvent", idList.channelName + "：" + idList.channelChildName, "广告按钮", this.link]);
+                let isExist = this.arr_H5Page.find(v => res.h5ProductId === v.h5ProductId);
+                if (!isExist) {
+                    this.arr_H5Page.push(res);
+                    this.$api.setSessionStorage("h5Page", this.arr_H5Page);
+                }
+            });
+        },
+        setHeight() {
+            setTimeout(() => {
+                let iframeHeader = $("#iframeHeader").height();
+                $("#jbiframe").css("top", iframeHeader);
+                $("#jbiframe").height($(window).height() - iframeHeader);
+            }, 200);
+        },
+        getCurPage() {
+            for (const item of this.arr_H5Page) {
+                if (this.link === item.adPage) {
+                    this.curPage = item;
+                    break;
+                }
+            }
+        }
+    },
+    mounted() {
+        this.$nextTick(function() {
+            this.setHeight();
+        });
+    },
+    created() {
+        this.link = this.$route.params.url;
+        this.arr_H5Page = this.$api.getSessionStorage("h5Page");
+        this.getCurPage();
+    }
+};
+</script>
+
+<style scoped>
+.iframe {
+    position: absolute;
+    left: 0;
+    width: 100%;
+}
+@media screen and (min-width: 640px) {
+    .iframe {
+        max-width: 640px;
+        left: 50%;
+        -webkit-transform: translateX(-50%);
+        -moz-transform: translateX(-50%);
+        -ms-transform: translateX(-50%);
+        transform: translateX(-50%);
+    }
+}
+.header-wrap {
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 1;
+    background-color: #27282c;
+}
+.ad-wrapper {
+    background: #fff;
+    color: #ef4f4f;
+    padding: 0.05rem 0.1rem;
+    line-height: 0.2rem;
+    text-align: center;
+}
+.go-btn {
+    display: inline-block;
+    padding: 0.05rem 0.15rem;
+    line-height: 0.24rem;
+    border-radius: 0.1rem;
+    background: #fec32a;
+    margin-top: 0.05rem;
+    color: #b43f06;
+    font-weight: bold;
+}
+.go-btn:active {
+    opacity: 0.8;
+    transition: 0.3s;
+}
+#iframeFooter {
+    position: fixed;
+    right: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 1;
+    background-color: #ccc;
+}
+.footer-btn {
+    background: #fec32a;
+    color: #b43f06;
+    font-weight: bold;
+    font-size: 0.18rem;
+    line-height: 0.4rem;
+    text-align: center;
+}
+</style>

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>借钱 靠自己</title>
+    <link rel="stylesheet" href="static/css/common.min.css" type="text/css">
+    <script src="static/js/jquery.min.js"></script>
+    <script src="static/js/JunboJsUI.min.js"></script>
+    <script src="http://pv.sohu.com/cityjson?ie=utf-8"></script>
+    <!-- <script src="https://cdn.bootcss.com/vConsole/3.2.0/vconsole.min.js"></script> -->
+    <script type="text/javascript">
+        // var vConsole = new VConsole();
+        window.sessionStorage.removeItem("openFlag");
+        var locationHref = window.location.href,
+            _paq = _paq || [], //matomo
+            _hmt = _hmt || [], //baidu
+            _mtac = {}, //tencent
+            setSiteId = "3",
+            txSid = "500640626",
+            txCid = "500640627",
+            bdid = "0640de5b5de94629aae3a326309c80fe",
+            siteList = [{
+                url: ["/home"],
+                setSiteId: "3",
+                txSid: "500640626",
+                txCid: "500640627",
+                bdid: "0640de5b5de94629aae3a326309c80fe"
+            }, {
+                url: ["/main"],
+                setSiteId: "5",
+                txSid: "500640630",
+                txCid: "500640631",
+                bdid: "0377e5660802027082db6e2e18c7eebc"
+            }, {
+                url: ["/loan", "/perfectinfo"],
+                setSiteId: "27",
+                txSid: "500649615",
+                txCid: "500649616",
+                bdid: "f29d0dc3d596462fac414b9e2fd6c116"
+            }, {
+                url: ["/page"],
+                setSiteId: "28",
+                txSid: "500650789",
+                txCid: "500650790",
+                bdid: "ccfcc49c33c256a077b80ce137d22d2b"
+            }, {
+                url: ["/page5"],
+                setSiteId: "30",
+                txSid: "500652895",
+                txCid: "500652896",
+                bdid: "6671eaa39f770683f499b63282f0fe5f"
+            }, {
+                url: ["/page6"],
+                setSiteId: "33",
+                txSid: "500654036",
+                txCid: "500654037",
+                bdid: "a545627f3420b2f7033ef3d9c9ae3b46"
+            }];
+        for (var i = 1; i < siteList.length; i++) {
+            for (var j = 0; j < siteList[i].url.length; j++) {
+                if (locationHref.indexOf(siteList[i].url[j]) >= 0) {
+                    setSiteId = siteList[i].setSiteId;
+                    txSid = siteList[i].txSid;
+                    txCid = siteList[i].txCid;
+                    bdid = siteList[i].bdid;
+                    break;
+                }
+            }
+        };
+        // Matomo 
+        _paq.push(['trackPageView']);
+        _paq.push(['enableLinkTracking']);
+        _paq.push(['enableHeartBeatTimer']); //上报停留时间
+        (function() {
+            var u = "//tj.liulianglf.com/";
+            _paq.push(['setTrackerUrl', u + 'piwik.php']);
+            _paq.push(['setSiteId', setSiteId]);
+            var d = document,
+                g = d.createElement('script'),
+                s = d.getElementsByTagName('script')[0];
+            g.type = 'text/javascript';
+            g.async = true;
+            g.defer = true;
+            g.src = u + 'piwik.js';
+            s.parentNode.insertBefore(g, s);
+        })();
+        //End Matomo Code
+        // 腾讯统计 
+        (function() {
+            var mta = document.createElement("script");
+            mta.src = "//pingjs.qq.com/h5/stats.js?v2.0.4";
+            mta.setAttribute("name", "MTAH5");
+            mta.setAttribute("sid", txSid);
+            mta.setAttribute("cid", txCid);
+            var s = document.getElementsByTagName("script")[0];
+            s.parentNode.insertBefore(mta, s);
+        })();
+        // End 腾讯统计
+        //百度统计
+        (function() {
+            var hm = document.createElement("script");
+            hm.src = "https://hm.baidu.com/hm.js?" + bdid;
+            var s = document.getElementsByTagName("script")[0];
+            s.parentNode.insertBefore(hm, s);
+        })();
+        //End 百度统计
+    </script>
+</head>
+
+<body>
+    <div id="app">
+    </div> <!-- 百度统计 -->
+    <script type="text/javascript">
+        if (locationHref.indexOf('jg.yiyadai.net') >= 0 || locationHref.indexOf('xinxiliu.cn') >= 0) {
+            window._agl = [];
+            (function() {
+                _agl.push(
+                    ['production', '_f7L2XwGXjyszb4d1e2oxPybgD']
+                );
+                (function() {
+                    var agl = document.createElement('script');
+                    agl.type = 'text/javascript';
+                    agl.async = true;
+                    agl.src = 'https://fxgate.baidu.com/angelia/fcagl.js';
+                    var s = document.getElementsByTagName('script')[0];
+                    s.parentNode.insertBefore(agl, s);
+                })();
+            })();
+        }
+    </script>
+    <!-- End 百度统计 -->
+</body>
+
+</html>

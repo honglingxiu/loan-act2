@@ -1,0 +1,66 @@
+<template>
+    <mt-popup v-model="popupVisible" popup-transition="popup-fade" :closeOnClickModal='false' class="message-box">
+        <div class="close-icon" @click="cancel()"></div>
+        <div class="popup-header"></div>
+        <div class="pd-l20 pd-r20 text-center">
+            <h4 class="popup-title lh28">{{data.showDetail}}</h4>
+            <h5 class="popup-title lh24">完善资料，获取更高的借款额度</h5>
+            <p class="lh22 fs12 c999 mg-t15">同时您符合以下产品条件的借款要求，我们将继续为您智能推荐，请留意接听电话核实资料</p>
+        </div>
+        <div class="company-list clearfix">
+            <div class="col-6" v-for="item in companyList" :key="item">
+                <span class="company c000">{{item}}</span>
+            </div>
+        </div>
+    </mt-popup>
+</template>
+
+<script>
+export default {
+    props: {
+        data: Object
+        // data.showDetail	String	弹框显示文字串
+        // data.adPage	String	跳转H5页面链接
+    },
+    data() {
+        return {
+            popupVisible: false,
+            timer1: "",
+            companyList: ["助贷网", "卡牛贷款", "房金所", "东方融资", "惠贷网", "百姓网", "菠萝贷", "好贷网"]
+        };
+    },
+    methods: {
+        autoLocation() {
+            this.timer1 = setTimeout(() => {
+                this.location();
+            }, 1500);
+        },
+        location() {
+            this.$parent.submitData();
+            window.clearTimeout(this.timer1);
+            this.$api.setSessionStorage("h5Page", [this.data]);
+            this.$api.setSessionStorage("homePage", this.$route.fullPath);
+            if (this.$api.getUrlParam("ad") === "0") { //ad === 0 : 无中转无iframe广告
+                MtaH5.clickStat("3", { channel: idList.channelName + "：" + idList.channelChildName });
+                _paq.push(["trackEvent", idList.channelName + "：" + idList.channelChildName, "跳转H5", this.data.adPage]);
+                window.location.href = this.data.adPage;
+                return;
+            }
+            if (this.data.showMiddlePage === "0") {
+                this.$router.push("/product/" + encodeURIComponent(this.data.adPage));
+            } else {
+                MtaH5.clickStat("3", { channel: idList.channelName + "：" + idList.channelChildName });
+                _paq.push(["trackEvent", idList.channelName + "：" + idList.channelChildName, "跳转H5", this.data.adPage]);
+                this.$router.push("/iframe/" + encodeURIComponent(this.data.adPage));
+            }
+        },
+        cancel() {
+            this.$parent.resetData();
+            MtaH5.clickStat("4", { channel: idList.channelName + "：" + idList.channelChildName });
+            if (this.timer1) window.clearTimeout(this.timer1);
+            _paq.push(["trackEvent", idList.channelName + "：" + idList.channelChildName, "关闭按钮"]); //matomo取消按钮统计
+            this.popupVisible = false;
+        }
+    }
+};
+</script>

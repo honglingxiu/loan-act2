@@ -1,0 +1,289 @@
+import Vue from 'vue';
+import {
+    Indicator,
+    MessageBox
+} from 'mint-ui';
+
+export default {
+    install(Vue, options) {
+        if (Vue) {
+            Vue.prototype.$api = this;
+        }
+    },
+    env() {
+        if (process.env.NODE_ENV === "development") return "development";
+        if (window.location.href.includes('192.168')) return 'test';
+        return 'production'
+    },
+    baseUrl() {
+        if (this.env() === "development" || this.env() === 'test') {
+            return "http://192.168.218.247:8022/";
+        }
+        return "http://api.junjue888.com/";
+    },
+    ServiceProxy() {
+        if (this.env() === "development" || this.env() === 'test') {
+            return "http://192.168.218.227:8081/ServiceProxy.aspx";
+        }
+        return "http://transfer.liulianglf.com/ServiceProxy.aspx";
+    },
+    _vkcServer: null,
+    getVkcServer() {
+        if (!this._vkcServer) {
+            var servicePara = {
+                key: "jbfly",
+                containKey: true,
+                defExt: "",
+                url: this.ServiceProxy(),
+            };
+            if (window['jc']) {
+                this._vkcServer = window['jc'].createService(servicePara);
+                //console.log("init jc server", this._vkcServer);
+            };
+        }
+        return this._vkcServer
+    },
+    /**
+     * vkc ajax post  统一处理失败情况，弹出后台给的失败msg
+     * @param url  路径（不包括IP）
+     * @param data  传的数据
+     * @param getAllData  成功后是否返回所有数据
+     * return 无getAllData 返回后台数据中data中的数据
+     *        有getAllData 返回所有后台数据
+     */
+    vkcPost(url, data, getAllData) {
+        return new Promise((resolve, reject) => {
+            this.getVkcServer().ajax(this.baseUrl() + url, data).done(res => {
+                // console.log(res);
+                if (res.Code == 100) {
+                    if (!getAllData) {
+                        if (res.Result.code === '0') {
+                            return resolve(res.Result.data);
+                        }
+                        Indicator.close();
+                        MessageBox('提示', res.Result.msg);
+                        return;
+                    }
+                    Indicator.close();
+                    return resolve(res.Result);
+                } else {
+                    Indicator.close();
+                    MessageBox('提示', res.Msg);
+                }
+            })
+        });
+    },
+    async wechatSubmit() {
+        let tokenParam = {
+            appid: "wxecfa41ae5da74eed",
+            secret: "cc206a2f1fd0a7c2dc64eeeda9098ddf"
+        };
+        let access_token = await this.vkcPost("weixin/completeorder/token", tokenParam);
+        let userActionSetIdParam = {
+            appid: "wxecfa41ae5da74eed",
+            token: access_token,
+            name: "提交",
+            description: "点击提交"
+        };
+        let userActionSetId = await this.vkcPost("weixin/completeorder/userActionSetId", userActionSetIdParam);
+        let submitParam = {
+            token: access_token,
+            userActionSetId: userActionSetId,
+            url: window.location.href,
+            actionType: "RESERVATION",
+            clickId: this.getUrlParam("gdt_vid") || "12345678",
+            value: ""
+        }
+        this.vkcPost("weixin/completeorder/order", submitParam);
+    },
+    getUrlParam(name) {
+        var reg = new RegExp("(^|\\?|&)" + name + "=([^&|^#]*)");
+        var l = window.location.href;
+        var i = l.indexOf("?");
+        if (i < 0) return null;
+        var str = l.slice(i + 1, l.length);
+        if (str) {
+            var r = str.match(reg);
+            if (r) {
+                return decodeURIComponent(r[2]);
+            }
+        }
+        return null;
+    },
+    setSessionStorage(key, value) {
+        let str = window.JSON.stringify(value);
+        if (window.sessionStorage) {
+            window.sessionStorage.setItem(key, str);
+        }
+    },
+    getSessionStorage(key) {
+        var json = "";
+        if (window.sessionStorage) {
+            json = window.sessionStorage.getItem(key);
+            if (json) json = window.JSON.parse(json)
+        }
+        return json;
+    },
+    setLocalStorage(key, value) {
+        let str = window.JSON.stringify(value);
+        if (window.localStorage) {
+            window.localStorage.setItem(key, str);
+        }
+    },
+    getLocalStorage(key) {
+        var json = "";
+        if (window.localStorage) {
+            json = window.localStorage.getItem(key);
+            if (json) json = window.JSON.parse(json)
+        }
+        return json;
+    },
+    /**
+     * 检查贷款金额是否正确
+     * @param {String} num 贷款金额
+     */
+    checkAmount(num) {
+        return /^[1-9]\d*$/.test(num);
+    },
+    /**
+     * 检查手机号是否正确
+     * @param {String} phone 手机号
+     */
+    checkMobile(phone) {
+        return /^1[0-9]{10}$/.test(phone);
+    },
+    /**
+     * 检查身份证是否正确
+     * @param {String} card 身份证号
+     */
+    checkCardNo(card) {
+        let reg = /^[1-9]\d{5}(18|19|([23]\d))\d{2}((0[1-9])|(10|11|12))(([0-2][1-9])|10|20|30|31)\d{3}[0-9Xx]$/;
+        return reg.test(card);
+    },
+    /**
+     * 检查姓名是否正确
+     * @param {String} name 姓名
+     */
+    checkName(name) {
+        // let reg = /^([a-zA-Z0-9\u4e00-\u9fa5\·]{1,10})$/;
+        let reg = /^([\u4e00-\u9fa5\·]{1,10})$/;
+        return reg.test(name)
+    },
+    /**
+     * 倒计时
+     * @param  time  倒计时秒数
+     * @param  tickFunc  每秒执行
+     * @param  done     结束后回调
+     */
+    countDown(time, tickFunc, done) {
+        let tick = () => {
+            setTimeout(() => {
+                if (time > 0) {
+                    time--;
+                    tickFunc(time);
+                    tick();
+                } else {
+                    done();
+                    return;
+                }
+            }, 1000);
+        };
+        tick();
+    },
+    /**
+     * 获取日期时间 默认格式 "yyyy-mm-dd hh:mm:ss"
+     * @param {Date} formatDate  可选 指定日期
+     * @param {String} formatType  可选 格式类型
+     */
+    getFormatDate(formatDate, formatType) {
+        let date = formatDate || new Date();
+        let type = formatType || 'yyyy-mm-dd hh:mm:ss';
+        let currentdate = '';
+        let month = date.getMonth() + 1;
+        let strDate = date.getDate();
+        let minutes = date.getMinutes();
+        let seconds = date.getSeconds();
+        month >= 1 && month <= 9 ? month = "0" + month : '';
+        strDate >= 0 && strDate <= 9 ? strDate = "0" + strDate : '';
+        minutes >= 0 && minutes <= 9 ? minutes = "0" + minutes : '';
+        seconds >= 0 && seconds <= 9 ? seconds = "0" + seconds : '';
+
+        switch (type.toLowerCase()) {
+            case 'yyyy-mm-dd hh:mm:ss':
+                currentdate = date.getFullYear() + "-" + month + "-" + strDate + " " + date.getHours() + ":" + minutes + ":" + seconds;
+                break;
+            case 'yyyy-mm-dd':
+                currentdate = date.getFullYear() + "-" + month + "-" + strDate;
+                break;
+            case 'yyyy-mm-dd hh:mm':
+                currentdate = date.getFullYear() + "-" + month + "-" + strDate + " " + date.getHours() + ":" + minutes;
+                break;
+            case 'yyyy-mm-dd hh':
+                currentdate = date.getFullYear() + "-" + month + "-" + strDate + " " + date.getHours();
+                break;
+            case 'yyyy-mm':
+                currentdate = date.getFullYear() + "-" + month;
+                break;
+            case 'yyyy':
+                currentdate = date.getFullYear();
+                break;
+            default:
+                currentdate = date.getFullYear() + "-" + month + "-" + strDate + " " + date.getHours() + ":" + minutes + ":" + seconds;
+                break;
+        }
+        return currentdate;
+    },
+    /**
+     * 获取渠道id
+     */
+    getIdList() {
+        if (window.idList) return;
+        let sStorageIdList = this.getSessionStorage("idList") || {};
+        window.idList = {};
+        idList.eventMarketId = this.getUrlParam("eventMarketId") || sStorageIdList.eventMarketId || "2018072011113883147001";
+        idList.channelId = this.getUrlParam("id") || sStorageIdList.channelId || "2047";
+        idList.channelChildId = this.getUrlParam("channelChildId") || sStorageIdList.channelChildId || "";
+        this.setSessionStorage("idList", window.idList);
+    },
+    /**
+     * 实时上报
+     * @param {Object} data  上报数据
+     */
+    timelySubmit(data) {
+        if (typeof data !== "object") return;
+        window.user_phone = data.phone || window.sessionStorage.getItem("userPhone") || "";
+        if (!window.user_phone) return;
+        let param = {
+            eventMarketId: idList.eventMarketId,
+            channelId: idList.channelId,
+            channelChildId: idList.channelChildId,
+            applyId: window.user_applyId || window.sessionStorage.getItem("userApplyId") || "",
+            ...data
+        };
+        if (data.phone) {
+            this.getVkcServer().ajax(this.baseUrl() + 'supermarketloan/distribute/loan/timelySubmit', param).done(res => {
+                res.Code == 100 ? window.user_applyId = res.Result.data : "";
+            })
+            return;
+        }
+        this.getVkcServer().ajax(this.baseUrl() + 'supermarketloan/distribute/loan/timelySubmit', param)
+    },
+    /**
+     * 判断是否百度渠道
+     */
+    isBaidu() {
+        return window.location.href.includes("jg.yiyadai.net") || window.location.href.includes("xinxiliu.cn");
+    },
+    /**
+     * 判断是否微信渠道
+     */
+    isWeChat() {
+        return idList.channelId === "2048";
+    },
+    /**
+     * 判断是否广点通渠道
+     */
+    isgdt() {
+        return idList.channelId === "2050";
+    }
+}

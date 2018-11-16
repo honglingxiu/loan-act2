@@ -1,0 +1,128 @@
+<template>
+    <mt-popup v-model="showInputBox" popup-transition="popup-fade" :closeOnClickModal='false' class="message-box">
+        <div v-if="type==='confirm'">
+            <h3 class="title">提示</h3>
+            <h5 class="text-center c666 mg-b20">完善身份证号码，放款率达 <span style="color:#d13731">98%</span></h5>
+            <footer class="flex">
+                <div class="footer-btn cancel flex-auto" @click="notFillout()">不填写</div>
+                <div class="footer-btn confirm flex-auto" @click="fillout()">填写</div>
+            </footer>
+        </div>
+        <div v-else>
+            <div class="flex idcard-item">
+                <label class="form-item-label">身份证号</label>
+                <input type="text" maxlength="18" v-model.trim="model" placeholder="请输入18位身份证号码" class="form-item-input" @blur="setCustomName(value)">
+            </div>
+            <footer class="flex">
+                <div class="footer-btn cancel flex-auto" @click="cancel()">取消</div>
+                <div class="footer-btn confirm flex-auto" @click="confirm()">确定</div>
+            </footer>
+        </div>
+    </mt-popup>
+</template>
+
+<script>
+export default {
+    props: {
+        value: {
+            type: String,
+            default: ""
+        }
+    },
+    data() {
+        return {
+            confirmTimer: "",
+            showInputBox: false,
+            type: "confirm"
+        };
+    },
+    computed: {
+        model: {
+            get() {
+                return this.value;
+            },
+            set(val) {
+                this.$emit("input", val);
+            }
+        }
+    },
+    methods: {
+        open() {
+            this.showInputBox = true;
+            this.confirmTimer = setTimeout(() => {
+                this.$parent.loan();
+            }, 5000);
+        },
+        notFillout() {
+            this.$parent.loan();
+            if (this.confirmTimer) window.clearTimeout(this.confirmTimer);
+            _paq.push(["trackEvent", idList.channelName + "：" + idList.channelChildName, "不填写"]);
+        },
+        fillout() {
+            this.type = "input";
+            if (this.confirmTimer) window.clearTimeout(this.confirmTimer);
+            _paq.push(["trackEvent", idList.channelName + "：" + idList.channelChildName, "填写"]);
+        },
+        cancel(){
+            this.$parent.loan();
+            this.showInputBox = false;
+            _paq.push(["trackEvent", idList.channelName + "：" + idList.channelChildName, "身份证弹框--取消"]);
+        },
+        confirm() {
+            if (!this.$api.checkCardNo(this.model)) {
+                this.$toast("身份证号输入有误");
+                return;
+            }
+            this.$parent.loan();
+            this.showInputBox = false;
+            _paq.push(["trackEvent", idList.channelName + "：" + idList.channelChildName, "身份证弹框--确认"]);
+        },
+        setCustomName(val) {
+            if (this.$api.checkCardNo(val)) {
+                this.$api.timelySubmit({ idCard: val });
+                _paq.push(["trackEvent", "自定义变量", "身份证", val]);
+            }
+        }
+    }
+};
+</script>
+<style scoped>
+.message-box {
+    border: 4px solid #5b5b5b;
+    padding: 0.15rem;
+}
+.title {
+    color: #2c86de;
+    text-align: center;
+    margin-bottom: 0.15rem;
+}
+.idcard-item {
+    line-height: 0.4rem;
+    border-bottom: 1px solid #666;
+    margin-bottom: 0.2rem;
+}
+.form-item-label {
+    min-width: 0.6rem;
+    margin-right: 0.1rem;
+    color: #000;
+    font-size: 0.14rem;
+}
+.footer-btn {
+    text-align: center;
+    line-height: 0.4rem;
+    color: #fff;
+    border-radius: 0.05rem;
+}
+.footer-btn:active {
+    opacity: 0.8;
+    transition: 0.2s;
+}
+.footer-btn.cancel {
+    background: #828e9e;
+    margin-right: 0.15rem;
+}
+.footer-btn.confirm {
+    background: #3d9bef;
+}
+</style>
+

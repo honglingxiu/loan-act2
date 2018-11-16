@@ -1,0 +1,40 @@
+{
+    "selectItem": {
+        "profession": [{
+            "values": ["请选择您的职业类型", "工薪族", "公务员", "小企业主", "个体户"],
+            "flex": 1,
+            "defaultIndex": 0
+        }],
+        "monthlySalary": [{
+            "values": ["请选择每月收入范围", "0-1999", "2000-2999", "3000-3999", "4000-5999", "6000-9999", "10000以上"],
+            "flex": 1,
+            "defaultIndex": 0
+        }]
+    },
+    "extraInfo": [{
+        "text": "我有房",
+        "value": "haveHouseProperty"
+    }, {
+        "text": "我有车",
+        "value": "automobileAssets"
+    }, {
+        "text": "有社保",
+        "value": "socialSecurity"
+    }, {
+        "text": "有公积金",
+        "value": "accFund"
+    }, {
+        "text": "有信用卡",
+        "value": "creditCard"
+    }, {
+        "text": "有寿险保单",
+        "value": "lifeInsurance"
+    }, {
+        "text": "有贷款记录",
+        "value": "loanRecord"
+    }, {
+        "text": "有微粒贷",
+        "value": "weiLidai"
+    }],
+    "loanTimeList": ["12", "24", "36", "48"]
+}
