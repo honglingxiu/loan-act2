@@ -1,0 +1,180 @@
+<template>
+    <div class="wrapper theme2 theme3">
+        <img src="static/img/banner4.png" alt="banner" width="100%">
+        <img src="static/img/step3.jpg" alt="步骤" class="step3">
+        <div class="wrap-phone">
+            <h5 class="title">填写资料，立即获得贷款</h5>
+            <div class="flex align-middle mg-t20 input-item">
+                <input type="phone" maxlength="11" v-model="formData.phone" placeholder="请输入您的手机号" class="form-item-input" @input="setCustomPhone(formData.phone)">
+            </div>
+            <div class="flex align-middle mg-t10 input-item">
+                <input type="text" v-model="formData.name" placeholder="请输入您的姓名" class="form-item-input" @blur="setCustomName(formData.name)">
+            </div>
+            <div class="loan-btn" @click="loan()">预约借款</div>
+            <div class="service">
+                <p class="service-txt" @click="$router.push('/service')">点击预约借款即同意《个人信息授权及服务协议》</p>
+                <div class="flex flex-center">
+                    <span class="select-icon" :class="{active:selected}" @click="selected=!selected"></span>
+                    <p class="service-txt">申请有礼：送最高100万保额意外险一份</p>
+                </div>
+            </div>
+        </div>
+        <p class="tiptxt">*月费率按照最低0.69%试算，具体以审批结果为准</p>
+        <p class="tiptxt">广州骏爵网络科技有限公司</p>
+        <mt-popup v-model="activityEnd" popup-transition="popup-fade" closeOnClickModal class="tipbox">活动已结束</mt-popup>
+        <v-messageBox :data="data" ref="messageBox" />
+    </div>
+</template>
+
+<script>
+import messageBox from "../message-box";
+export default {
+    name: "Activity4",
+    components: {
+        "v-messageBox": messageBox
+    },
+    data() {
+        return {
+            formData: {
+                phone: "",
+                name: ""
+            },
+            activityEnd: false, // true --- 活动结束   false --- 活动使用中
+            data: {},
+            selected: true
+        };
+    },
+    methods: {
+        setCustomName(val) {
+            if (val) {
+                this.$api.timelySubmit({ name: val });
+                _paq.push(["trackEvent", "自定义变量", "称呼", val]);
+            }
+        },
+        setCustomPhone(val) {
+            if (val.length === 11 && /^1[0-9]{10}$/.test(val)) {
+                this.$api.timelySubmit({ phone: val });
+                _paq.push(["trackEvent", "自定义变量", "手机号", val]);
+            }
+        },
+        resetData() {
+            Object.assign(this.$data.formData, this.$options.data().formData);
+        },
+        submit(toPerfect) {
+            if (!this.$api.checkMobile(this.formData.phone)) return;
+            if (!this.$api.checkName(this.formData.name)) return;
+
+            let param = {
+                eventMarketId: idList.eventMarketId,
+                channelId: idList.channelId,
+                channelChildId: idList.channelChildId,
+                phone: this.formData.phone,
+                name: this.formData.name,
+                socialSecurity: "有",
+                birthDate: "1990-11-11",
+                selectAgreement: this.selected ? "1" : "0", // 0 未勾选  1勾选
+                applyId: window.user_applyId || ""
+            };
+            if (toPerfect) {
+                param.applyId = this.applyId;
+                this.$api.vkcPost("supermarketloan/distribute/loan/toPerfect", param).then(res => {});
+                return;
+            }
+            this.$indicator.open({ text: "正在提交..." });
+            return new Promise(resolve => {
+                this.$api.vkcPost("supermarketloan/distribute/loan/apply", param, "getAllData").then(res => {
+                    if (res.code === "0") {
+                        this.applyId = res.data.applyId;
+                        idList.channelId === "2048" ? this.$api.wechatSubmit() : ""; //微信转化
+                        if (this.$api.isBaidu()) {
+                            //百度转化
+                            window._agl && window._agl.push(["track", ["success", { t: 3 }]]);
+                        }
+                        MtaH5.clickStat("2", { channel: idList.channelName + "：" + idList.channelChildName });
+                        _paq.push(["trackEvent", "预约借款按钮", idList.channelName + "：" + idList.channelChildName]); //matomo预约借款按钮统计
+                        this.$indicator.close();
+                        resolve(res.data);
+                    } else {
+                        this.$toast({
+                            message: res.msg,
+                            duration: 1500
+                        });
+                    }
+                });
+            });
+        },
+        submitData() {
+            this.submit("toPerfect");
+        },
+        async loan() {
+            let res = await this.submit();
+            if (res) {
+                if (res.adPage) {
+                    this.data = res;
+                    this.$refs.messageBox.popupVisible = true;
+                    this.$refs.messageBox.autoLocation();
+                    return;
+                }
+                MtaH5.clickStat("5", { channel: idList.channelName + "：" + idList.channelChildName });
+                _paq.push(["trackEvent", "跳转成功页面", idList.channelName + "：" + idList.channelChildName]);
+                this.$router.push("/success");
+            }
+        }
+    },
+    created() {
+        this.$api.vkcPost("supermarketloan/eventmarket/onlineState", { ...idList }).then(res => {
+            res.onlineState === "1" ? (this.activityEnd = true) : (this.activityEnd = false); //0使用中  1已禁用
+            idList.channelChildName = res.channelChildName || "";
+            idList.channelName = res.channelName || "";
+            MtaH5.clickStat("1", { channel: idList.channelName + "：" + idList.channelChildName });
+            _paq.push(["trackEvent", "渠道统计", res.channelName + "：" + idList.channelChildName]);
+        });
+    }
+};
+</script>
+<style scoped>
+.step3 {
+    width: 90%;
+    margin-left: 5%;
+    margin-top: -14%;
+}
+.wrap-phone {
+    width: 90%;
+    margin: 0.15rem 5% 0.2rem 5%;
+    padding: 0.15rem;
+    background: #fff;
+}
+.wrap-phone .title {
+    color: #ff8900;
+}
+.get-code {
+    height: 0.45rem;
+    border: 0;
+    outline: 0;
+    width: 1.2rem;
+    color: #fff;
+    font-size: 0.14rem;
+    background: #6e7987;
+}
+.input-item {
+    height: 0.45rem;
+    overflow: hidden;
+    padding-left: 0.15rem;
+    border: 1px solid #4f5967;
+    border-radius: 0.06rem;
+}
+.loan-btn {
+    width: 100%;
+    margin: 0.15rem 0 0.2rem 0;
+    border-radius: 0.05rem;
+}
+</style>
+
+
+
+
+
+
+
+
+

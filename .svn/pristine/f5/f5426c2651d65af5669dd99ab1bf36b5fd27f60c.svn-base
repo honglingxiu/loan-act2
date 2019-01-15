@@ -1,0 +1,183 @@
+<template>
+    <div class="wrapper theme2 theme3">
+        <img src="static/img/wechat3.jpg" alt="banner" width="100%" v-if="$api.isWeChat()">
+        <img src="static/img/baidu3.jpg" alt="banner" width="100%" v-else-if="$api.isBaidu()">
+        <img src="static/img/banner3.jpg" alt="banner" width="100%" v-else>
+        <img src="static/img/step3.jpg" alt="步骤" class="step3">
+        <div class="wrap-phone">
+            <h5 class="title">填写资料，立即获得贷款</h5>
+            <div class="flex align-middle mg-t20 input-item">
+                <input type="phone" maxlength="11" v-model="phone" placeholder="请输入您的手机号" class="form-item-input" @input="setCustomPhone(phone)">
+                <button class="get-code" :disabled="disbtn" @click="getCode()">{{codetxt}} {{time}}</button>
+            </div>
+            <div class="flex align-middle mg-t10 input-item">
+                <input type="phone" maxlength="6" v-model="code" placeholder="请输入6位验证码" class="form-item-input">
+            </div>
+            <div class="loan-btn" @click="loan()">预约借款</div>
+            <div class="service">
+                <p class="service-txt" @click="$router.push('/serviceyyd')" v-if="$api.isBaidu()">点击完成借钱即同意《易亚贷用户服务协议》</p>
+                <p class="service-txt" @click="$router.push('/service')" v-else>点击预约借款即同意《个人信息授权及服务协议》</p>
+                <div class="flex flex-center">
+                    <span class="select-icon" :class="{active:selected}" @click="selected=!selected"></span>
+                    <p class="service-txt">申请有礼：送最高100万保额意外险一份</p>
+                </div>
+            </div>
+        </div>
+        <div v-if="$api.isBaidu()">
+            <p class="tiptxt">深圳市易网联科技有限公司</p>
+            <p class="tiptxt">粤ICP备 17002348号-2</p>
+            <p class="tiptxt">市场有风险，选择需谨慎</p>
+        </div>
+        <div v-else-if="$api.isgdt()">
+            <p class="tiptxt">广州天河元岗路310号智汇创意园C409</p>
+            <p class="tiptxt">020-38468075 粤ICP备17065536号-2</p>
+        </div>
+        <div v-else>
+            <p class="tiptxt" v-if="!$api.isWeChat()">*月费率按照最低0.69%试算，具体以审批结果为准</p>
+            <p class="tiptxt">广州骏爵网络科技有限公司</p>
+        </div>
+        <mt-popup v-model="activityEnd" popup-transition="popup-fade" closeOnClickModal class="tipbox">活动已结束</mt-popup>
+    </div>
+</template>
+
+<script>
+export default {
+    name: "Activity3",
+    data() {
+        return {
+            activityEnd: false, // true --- 活动结束   false --- 活动使用中
+            phone: "",
+            code: "",
+            selected: true,
+            codetxt: "获取验证码",
+            time: "",
+            disbtn: false
+        };
+    },
+    methods: {
+        setCustomPhone(val) {
+            if (val.length === 11 && /^1[0-9]{10}$/.test(val)) {
+                _paq.push(["trackEvent", "自定义变量", "手机号", val]);
+            }
+        },
+        sendcCode() {
+            this.disbtn = true;
+            this.codetxt = "重新发送";
+            this.time = "60";
+            this.$api.countDown(
+                this.time,
+                tick => {
+                    this.time = tick;
+                },
+                () => {
+                    this.time = "";
+                    this.disbtn = false;
+                }
+            );
+            this.$messagebox("提示", "验证码已发送");
+        },
+        getCode() {
+            if (this.disbtn) return;
+            if (!this.$api.checkMobile(this.phone)) return;
+            this.$indicator.open();
+            this.$api.vkcPost("supermarketloan/distribute/loan/getVerifyCode", { phone: this.phone }).then(res => {
+                this.sendcCode();
+                this.$indicator.close();
+            });
+        },
+        checkInfo() {
+            if (!this.$api.checkMobile(this.phone)) return false;
+            if (this.code === "") {
+                this.$toast({
+                    message: "请输入验证码",
+                    duration: 2000
+                });
+                return false;
+            }
+            if (!/^[0-9]{6}$/.test(this.code)) {
+                this.$toast({
+                    message: "验证码错误",
+                    duration: 2000
+                });
+                return false;
+            }
+            return true;
+        },
+        loan() {
+            if (!this.checkInfo()) return false;
+            let param = {
+                eventMarketId: idList.eventMarketId,
+                channelId: idList.channelId,
+                channelChildId: idList.channelChildId,
+                phone: this.phone,
+                verifyCode: this.code,
+                applyId: window.user_applyId || ""
+            };
+            this.$api.vkcPost("supermarketloan/distribute/loan/timelySubmit", param).then(res => {
+                window.user_applyId = res;
+                window.user_phone = this.phone;
+                window.sessionStorage.setItem("userApplyId", res);
+                window.sessionStorage.setItem("userPhone", this.phone);
+                this.$router.push("/perfectinfo/" + encodeURIComponent(this.$route.fullPath));
+            });
+            MtaH5.clickStat("8", { channel: idList.channelName + "：" + idList.channelChildName });
+            _paq.push(["trackEvent", "首页预约借款按钮", idList.channelName + "：" + idList.channelChildName]);
+        }
+    },
+    created() {
+        this.$api.vkcPost("supermarketloan/eventmarket/onlineState", { ...idList }).then(res => {
+            res.onlineState === "1" ? (this.activityEnd = true) : (this.activityEnd = false); //0使用中  1已禁用
+            idList.channelChildName = res.channelChildName || "";
+            idList.channelName = res.channelName || "";
+            MtaH5.clickStat("1", { channel: idList.channelName + "：" + idList.channelChildName });
+            _paq.push(["trackEvent", "渠道统计", res.channelName + "：" + idList.channelChildName]);
+        });
+    }
+};
+</script>
+<style scoped>
+.step3 {
+    width: 90%;
+    margin-left: 5%;
+    margin-top: -14%;
+}
+.wrap-phone {
+    width: 90%;
+    margin: 0.15rem 5% 0.2rem 5%;
+    padding: 0.15rem;
+    background: #fff;
+}
+.wrap-phone .title {
+    color: #ff7e00;
+}
+.get-code {
+    height: 0.45rem;
+    border: 0;
+    outline: 0;
+    width: 1.2rem;
+    color: #fff;
+    font-size: 0.14rem;
+    background: #6e7987;
+}
+.input-item {
+    height: 0.45rem;
+    overflow: hidden;
+    padding-left: 0.15rem;
+    border: 1px solid #4f5967;
+    border-radius: 0.06rem;
+}
+.loan-btn {
+    width: 100%;
+    margin: 0.15rem 0 0.2rem 0;
+    border-radius: 0.05rem;
+}
+</style>
+
+
+
+
+
+
+
+
+

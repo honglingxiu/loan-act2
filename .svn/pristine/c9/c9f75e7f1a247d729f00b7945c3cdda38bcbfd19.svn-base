@@ -1,0 +1,114 @@
+<template>
+  <div class="wrapper theme6 theme2" v-if="!onlineState">
+    <img src="static/img/baidu6.jpg" alt="banner" width="100%" v-if="$api.isBaidu()" style="display:block">
+    <img src="static/img/banner6.jpg" alt="banner" width="100%" v-else style="display:block">
+    <div class="main6">
+      <v-form ref="form"></v-form>
+      <div class="loan-btn" @click="submit()">{{$api.isBaidu()?"点击完成借钱":"预约借款"}}</div>
+      <div class="service">
+        <p class="service-txt" @click="$router.push('/serviceyyd')" v-if="$api.isBaidu()">点击完成借钱即同意《易亚贷用户服务协议》</p>
+        <p class="service-txt" @click="$router.push('/service')" v-else>点击预约借款即同意《个人信息授权及服务协议》</p>
+        <div class="flex flex-center">
+          <span class="select-icon" :class="{active:selected}" @click="selected=!selected"></span>
+          <p class="service-txt">申请有礼：送最高100万保额意外险一份</p>
+        </div>
+      </div>
+    </div>
+    <div v-if="$api.isBaidu()">
+      <p class="tiptxt">深圳市易网联科技有限公司</p>
+      <p class="tiptxt">粤ICP备 17002348号-2</p>
+      <p class="tiptxt">市场有风险，选择需谨慎</p>
+    </div>
+    <div v-else-if="$api.isSms()">
+      <p class="tiptxt">杜绝借款犯罪，倡导合法借贷，信守借款合约</p>
+      <p class="tiptxt">贷款资金由银行等持牌放贷机构提供</p>
+      <p class="tiptxt">授信额度，费率，借款到账时间以实际审批结果为准</p>
+      <br>
+      <p class="tiptxt">广州骏爵网络科技有限公司</p>
+      <p class="tiptxt">粤ICP备 17065536号-2</p>
+    </div>
+    <div v-else>
+      <p class="tiptxt" v-if="!$api.isWeChat()">*月费率按照最低0.69%试算，具体以审批结果为准</p>
+      <p class="tiptxt">广州骏爵网络科技有限公司</p>
+    </div>
+    <v-messageBox :data="data" ref="messageBox"/>
+    <v-inputBox v-model="idCard" ref="inputBox"/>
+  </div>
+  <div v-else>
+    <mt-popup v-model="onlineState" popup-transition="popup-fade" closeOnClickModal class="tipbox">活动已结束</mt-popup>
+  </div>
+</template>
+
+<script>
+import form6 from "./form6";
+import messageBox from "../../message-box";
+import inputBox from "./input-box.vue";
+export default {
+  name: "Activity6",
+  components: {
+    "v-form": form6,
+    "v-messageBox": messageBox,
+    "v-inputBox": inputBox
+  },
+  data() {
+    return {
+      onlineState: false,
+      selected: true,
+      idCard: "",
+      data: {}
+    };
+  },
+  watch: {
+    idCard(n) {
+      this.$refs.form.formData.idCard = n;
+    }
+  },
+  methods: {
+    submitData() {
+      this.$refs.form.submit("toPerfect");
+    },
+    submit() {
+      let result = this.$refs.form.checkInfo();
+      if (result !== true) {
+        this.$toast(result);
+        return;
+      }
+      this.loan();
+      // this.$refs.inputBox.open();
+    },
+    async loan() {
+      let res = await this.$refs.form.submit();
+      if (res) {
+        if (res.adPage) {
+          this.data = res;
+          this.$refs.messageBox.popupVisible = true;
+          this.$refs.messageBox.autoLocation();
+          return;
+        }
+        MtaH5.clickStat("5", { channel: idList.channelName + "：" + idList.channelChildName });
+        _paq.push(["trackEvent", "跳转成功页面", idList.channelName + "：" + idList.channelChildName]);
+        this.$router.push("/success");
+      }
+    }
+  },
+  created() {
+    this.$api.isSms() ? document.title = "助贷雷锋" : "";
+    this.$api.vkcPost("supermarketloan/eventmarket/onlineState", { ...idList }).then(res => {
+      res.onlineState === "1" ? (this.onlineState = true) : ""; //0使用中  1已禁用
+      idList.channelChildName = res.channelChildName || "";
+      idList.channelName = res.channelName || "";
+      MtaH5.clickStat("1", { channel: idList.channelName + "：" + idList.channelChildName });
+      _paq.push(["trackEvent", "渠道统计", res.channelName + "：" + idList.channelChildName]); //console.log('matomo渠道统计');
+    });
+  }
+};
+</script>
+
+
+
+
+
+
+
+
+

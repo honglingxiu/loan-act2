@@ -1,0 +1,142 @@
+<template>
+    <div class="form3-wrap theme2 theme3">
+        <mt-header title="完善申请信息" fixed>
+            <mt-button icon="back" slot="left" @click.native="$router.replace($route.params.backurl)" class="backicon"></mt-button>
+        </mt-header>
+        <div class="tip-info">您好，请完善以下信息，您将更快获得贷款！</div>
+        <div class="loan-info">
+            <h4 class="text-center lh30 mg-b20 cfff">
+                <span>我要借：{{amount}}万元</span>
+                <span class="repayment">( 每月还款：{{repayment}}元 )</span>
+            </h4>
+        </div>
+        <div class="main-form3">
+            <v-form ref="form" form3 @loanAmount="setAmount"></v-form>
+            <div class="loan-btn" @click="loan()">预约借款</div>
+            <div class="service">
+                <p class="service-txt" @click="$router.push('/service')">点击预约借款即同意《个人信息授权及服务协议》</p>
+                <div class="flex flex-center">
+                    <span class="select-icon" :class="{active:selected}" @click="selected=!selected"></span>
+                    <p class="service-txt">申请有礼：送最高100万保额意外险一份</p>
+                </div>
+            </div>
+        </div>
+        <p class="tiptxt">*月费率按照最低0.69%试算，具体以审批结果为准</p>
+        <p class="tiptxt">广州骏爵网络科技有限公司</p>
+        <v-messageBox :data="data" ref="messageBox" />
+    </div>
+</template>
+
+<script>
+import form from "../form";
+import messageBox from "../../message-box";
+export default {
+    name: "Form3",
+    components: {
+        "v-form": form,
+        "v-messageBox": messageBox
+    },
+    data() {
+        return {
+            amount: 10, // 万元
+            applyDeadline: "24",
+            data: {},
+            selected: true
+        };
+    },
+    computed: {
+        repayment() {
+            // 贷款金额*（1+0.075）/分期数=月还款额
+            return Math.round((this.amount * 10750) / this.applyDeadline);
+        }
+    },
+    methods: {
+        submitData() {
+            this.$refs.form.submit("toPerfect");
+        },
+        resetData() {
+            Object.assign(this.$data, this.$options.data());
+            this.$refs.form.resetData();
+        },
+        setAmount(val) {
+            this.amount = val.amount ? val.amount : 0;
+            this.applyDeadline = val.applyDeadline ? val.applyDeadline : 0;
+        },
+        async loan() {
+            let res = await this.$refs.form.submit();
+            if (res) {
+                if(res.openInform==1){//分发给“微店金融线索”的就弹窗提示会有人打电话
+                    this.data = res;
+                    this.$refs.messageBox.popupVisible = true;
+                    return;
+                }
+                if (res.adPage) {
+                    this.data = res;
+                    this.$refs.messageBox.popupVisible = true;
+                    this.$refs.messageBox.autoLocation();
+                    return;
+                }
+                MtaH5.clickStat("5", { channel: idList.channelName + "：" + idList.channelChildName });
+                _paq.push(["trackEvent", "跳转成功页面", idList.channelName + "：" + idList.channelChildName]);
+                this.$router.push("/success");
+            }
+        }
+    },
+    mounted() {
+        this.$nextTick(function() {
+            if (!window.idList) this.$router.back();
+        });
+    }
+};
+</script>
+<style scoped>
+.form3-wrap {
+    padding-top: 50px;
+    padding-bottom: 0.2rem;
+}
+.tip-info {
+    background: #ffe400;
+    color: #837713;
+    font-size: 0.14rem;
+    text-align: center;
+    line-height: 0.36rem;
+}
+.tiptxt {
+    color: #adadad;
+}
+.loan-info {
+    height: 1.15rem;
+    padding: 0.15rem;
+    background: #5d6673;
+}
+.repayment {
+    font-size: 0.13rem;
+    margin-left: 0.25rem;
+}
+.main-form3 {
+    padding-bottom: 0.15rem;
+    margin: -0.5rem 0.15rem 0.15rem 0.15rem;
+    background: #fff;
+}
+.main-form3 >>> .extra-info {
+    background: #fff;
+}
+.main-form3 >>> .phone-item {
+    display: none !important;
+}
+.main-form3 >>> .sex-switch {
+    background: #ff7e00;
+}
+.main-form3 >>> .sex-switch-radio:checked + .slide-block {
+    color: #ff7e00;
+}
+</style>
+
+
+
+
+
+
+
+
+

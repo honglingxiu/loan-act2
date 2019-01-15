@@ -2,32 +2,31 @@
     <div>
         <mt-popup v-model="popupCity" position="right" :modal='false' class="page-popup">
             <mt-header title="选择城市" fixed>
-                <mt-button icon="back" slot="left" @click="popupCity=false" class="backicon"></mt-button>
+                <mt-button icon="back" slot="left" @click="close()" class="backicon"></mt-button>
             </mt-header>
             <div class="container">
-                <!-- <h5 class="text-center bgfff pd20 c333">选择城市</h5> -->
-                <div class="wrap-search flex align-middle">
-                    <img src="../assets/img/search.png" width="16" height="16" alt="">
-                    <input type="search" placeholder="请输入城市名称或者拼音" class="mg-l10 flex-auto form-item-input" v-model="keyword" @input="search" @focus="searching=true" @blur="searching=false">
+                <div class="wrap-search">
+                    <img src="./img/search.png" width="16" height="16" alt="">
+                    <input type="search" placeholder="请输入城市名称或者拼音" class="input-search" v-model="keyword" @input="search" @focus="searching=true" @blur="searching=false">
                 </div>
                 <div v-show="searching">
                     <ul class="search-result" v-show="searchResult.length>0">
                         <li v-for="(item,key) in searchResult" :key="key" @click="selectCity(item)">{{item.cityName}}</li>
                     </ul>
-                    <p class="text-center pd-t15 c666" v-show="searchResult.length===0&&!firstload">暂无搜索结果</p>
+                    <p class="no-result" v-show="searchResult.length===0&&!firstload">暂无搜索结果</p>
                 </div>
                 <div v-show="!searching">
-                    <div class="flex align-middle c999 fs14 pd20 bgfff">
+                    <div class="cur-city">
                         当前定位城市：
                         <span class="c333 mg-l10 flex-auto" @click="selectCity()">{{currentCity.cityName}}</span>
-                        <img src="../assets/img/refresh.png" class="refresh" :class="{'rotate360':rotate}" alt="刷新定位" @click="location">
+                        <img src="./img/refresh.png" class="refresh" :class="{'rotate360':rotate}" alt="刷新定位" @click="location">
                     </div>
-                    <h5 class="pd20 c999">热门城市</h5>
+                    <h3 class="hot-city-title">热门城市</h3>
                     <ul class="hot-city">
                         <li class="hot-city-item" v-for="item in citys.hotCityItem" :key="item.cityCode" @click="selectCity(item)">{{item.cityName}}</li>
                     </ul>
-                    <h5 class="pd20 c999">全部城市</h5>
-                    <mt-index-list>
+                    <h3 class="all-city-title">全部城市</h3>
+                    <mt-index-list :height="height">
                         <mt-index-section v-for="item in citys.cityInfo" :key="item.letter" :index="item.letter">
                             <mt-cell v-for="cell in item.cityItem" :key="cell.cityCode" :title="cell.cityName" @click.native="selectCity(cell)"></mt-cell>
                         </mt-index-section>
@@ -40,36 +39,48 @@
 </template>
 
 <script>
-// @keyup="submit($event)"
-// submit(e){
-// var presskey = e.keyCode || e.which;
-// if(presskey===13){
-//     this.$messagebox('提示',this.keyword);
-// }
-// },
-// @input="submit($event)"
-// 设置input autocomplete="off"去掉弹出的下拉框；
-//     将默认的“x”隐藏掉：
-// input[type="search"]::-webkit-search-cancel-button{
-//     display: none;
-// }
-//     针对ios 设置样式, 去除ios下input 椭圆形:
-// -webkit-appearance: none;
-// 同时别忘记，如果提交搜索时想使用ajax，那么可以阻止表单的默认行为：
-// container.on('submit', '.input-kw-form', function(event){
-//     event.preventDefault();
-// })
-//
+/**
+ * 使用方法
+ * <input type="text" v-model="formData.city" @click="$refs.citypage.open()" readonly onfocus="this.blur()" placeholder="请选择城市">
+ * <jb-selectCity v-model="formData.city" cityName ref="citypage"></jb-selectCity>
+ * 打开城市选择页面  $refs.citypage.open()
+ * cityName       // formData.city 只返回所选城市
+ * cityCode       // formData.city 只返回所选城市编码
+ * 两者全有或全无  // formData.city 返回城市和编码对象 {cityName:所选城市,cityCode:所选城市编码}
+ * 注意：
+ * 依赖框架  mint-ui （可以重写覆盖mint-ui的class改样式）
+ * 因为是通过vkc调用后台接口(http://api.junjue888.com/)，所以依赖jq
+ * 定位用的是搜狐的，记得在页面引入<script src="http://pv.sohu.com/cityjson?ie=utf-8">< /script>
+ */
 export default {
+    name: "jb-selectCity",
+    props: {
+        cityName: Boolean,
+        cityCode: Boolean,
+        value: {
+            type: [String, Object],
+            default: ""
+        }
+    },
+    computed: {
+        model: {
+            get() {
+                return this.value;
+            },
+            set(val) {
+                this.$emit("input", val);
+            }
+        }
+    },
     data() {
         return {
             popupCity: false,
+            height: document.documentElement.clientHeight - 50,
             rotate: false,
             keyword: "",
             searching: false,
             firstload: true,
             searchResult: [],
-            position: "",
             currentCity: {
                 cityName: "",
                 cityCode: ""
@@ -83,6 +94,12 @@ export default {
         };
     },
     methods: {
+        open() {
+            this.popupCity = true;
+        },
+        close() {
+            this.popupCity = false;
+        },
         location() {
             this.rotate = true;
             this.$api.vkcPost("supermarketloan/other/localcity", { param: { ip: returnCitySN.cip } }).then(res => {
@@ -112,7 +129,10 @@ export default {
                 this.currentCity.cityCode = this.citys.currentCityCode;
                 cityobj = this.currentCity;
             }
-            this.$emit("setCity", cityobj);
+            this.model = cityobj;
+            if (this.cityName) this.model = cityobj.cityName;
+            if (this.cityCode) this.model = cityobj.cityCode;
+            if (this.cityName && this.cityCode) this.model = cityobj;
             this.keyword = "";
             this.popupCity = false;
         }
@@ -123,9 +143,9 @@ export default {
                 this.currentCity.cityName = res.currentCityName;
                 this.currentCity.cityCode = res.currentCityCode;
                 this.citys = res;
-                $(".mint-indexlist-content").height($(".mint-indexlist-content").height() - 50);
             });
         });
+
     }
 };
 </script>
@@ -146,10 +166,22 @@ export default {
     left: 0;
 }
 .wrap-search {
+    display: flex;
+    align-items: center;
     border-radius: 0.07rem;
     margin: 0.1rem;
     background: #fff;
     padding: 0.15rem;
+}
+.input-search {
+    flex: auto;
+    -ms-flex: auto;
+    -webkit-box-flex: 1;
+    border-radius: 0;
+    border: 0;
+    outline: 0;
+    min-width: 0.5rem;
+    margin-left: 0.1rem;
 }
 .search-result {
     background: #fff;
@@ -162,6 +194,19 @@ export default {
 .search-result > li:last-child {
     border-bottom: none;
 }
+.no-result {
+    padding-top: 0.15rem;
+    color: #666;
+    text-align: center;
+}
+.cur-city {
+    display: flex;
+    align-items: center;
+    padding: 0.2rem;
+    background-color: #fff;
+    color: #999;
+    font-size: 0.14rem;
+}
 .refresh {
     width: 0.2rem;
     height: 0.2rem;
@@ -172,6 +217,12 @@ export default {
     -moz-animation: rotate360 0.8s linear infinite; /* Firefox */
     -webkit-animation: rotate360 0.8s linear infinite; /* Safari 和 Chrome */
     -o-animation: rotate360 0.8s linear infinite; /* Opera */
+}
+.hot-city-title,
+.all-city-title {
+    padding: 0.15rem 0.2rem;
+    color: #999;
+    font-size: 0.16rem;
 }
 .hot-city {
     position: relative;
@@ -196,4 +247,31 @@ export default {
     border-right: 1px solid #eee;
     border-bottom: 1px solid #eee;
 }
+/*动画类*/
+
+@keyframes rotate360 {
+    from {
+        transform: rotate(0deg);
+        -ms-transform: rotate(0deg);
+        /* IE 9 */
+        -moz-transform: rotate(0deg);
+        /* Firefox */
+        -webkit-transform: rotate(0deg);
+        /* Safari 和 Chrome */
+        -o-transform: rotate(0deg);
+        /* Opera */
+    }
+    to {
+        transform: rotate(-360deg);
+        -ms-transform: rotate(-360deg);
+        /* IE 9 */
+        -moz-transform: rotate(-360deg);
+        /* Firefox */
+        -webkit-transform: rotate(-360deg);
+        /* Safari 和 Chrome */
+        -o-transform: rotate(-360deg);
+        /* Opera */
+    }
+}
 </style>
+

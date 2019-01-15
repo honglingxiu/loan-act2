@@ -1,0 +1,116 @@
+<template>
+    <div class="wrapper theme1">
+        <!-- <img src="static/img/baidu1.jpg" alt="banner" width="100%" v-if="$api.isBaidu()"> -->
+        <img src="static/img/baidu1backup.jpg" alt="banner" width="100%" v-if="$api.isBaidu()">
+        <img src="static/img/wechat1.jpg" alt="banner" width="100%" v-else-if="$api.isWeChat()">
+        <img src="static/img/banner1.jpg" alt="banner" width="100%" v-else>
+        <div class="main">
+            <div class="flex align-middle step">
+                <div class="flex-auto relative">
+                    <span class="step-num">1</span>填写资料
+                </div>
+                <div class="flex-auto relative">
+                    <span class="step-num">2</span>
+                    {{$api.isWeChat()?"自助审批":"激活额度"}}
+                </div>
+                <div class="flex-auto relative">
+                    <span class="step-num">3</span>
+                    {{$api.isBaidu()?"审核提现":$api.isWeChat()?"在线放款":"马上提现"}}
+                </div>
+            </div>
+            <v-form ref="form"></v-form>
+            <div class="loan-btn" @click="loan()">预约借款</div>
+            <div class="service">
+                <p class="service-txt" @click="$router.push('/servicegs')" v-if="$api.isBaidu()">点击完成借钱即同意《服务协议》</p>
+                <p class="service-txt" @click="$router.push('/service')" v-else>点击预约借款即同意《个人信息授权及服务协议》</p>
+                <div class="flex flex-center" v-if="!$api.isBaidu()">
+                    <span class="select-icon" :class="{active:selected}" @click="selected=!selected"></span>
+                    <p class="service-txt">申请有礼：送最高100万保额意外险一份</p>
+                </div>
+            </div>
+        </div>
+        <p class="tiptxt" v-if="$api.isWeChat()">*最低年化率按6.9%试算，具体以审批额度为准</p>
+        <p class="tiptxt" v-else-if="$api.isBaidu()"></p>
+        <p class="tiptxt" v-else>*月费率按照最低0.69%试算，具体以审批结果为准</p>
+        <div class="tiptxt" v-if="$api.isBaidu()">
+            <!-- <p>贷款有风险 投资需谨慎</p>
+                  <p>版权所有：四平市华宇大通小额贷款有限公司</p>
+            <p>ICP备案：吉ICP备18001621号-1</p>-->
+            <p>市场有风险，选择需谨慎</p>
+            <p>本机构不做任何贷前收费行为</p>
+            <p>版权所有 Copyright(C)2018 中山市中达小额贷款有限责任公司</p>
+            <p>中山市民众镇沿和路</p>
+            <p>粤ICP备18049090号</p>
+            <p>1.近期诈骗案件高发 提高安全意识 谨防上当受骗</p>
+            <p>2.放款机构视个人征信情况而定 以实际放款机构为准</p>
+        </div>
+        <p class="tiptxt" v-else-if="$api.isWeChat()">出资主体：招联消费金融有限公司</p>
+        <p class="tiptxt" v-else>广州骏爵网络科技有限公司</p>
+        <v-messageBox :data="data" ref="messageBox"/>
+        <mt-popup v-model="onlineState" popup-transition="popup-fade" closeOnClickModal class="tipbox">活动已结束</mt-popup>
+    </div>
+</template>
+
+<script>
+    import form from "./form";
+    import messageBox from "../message-box";
+
+    export default {
+        name: "Activity1",
+        components: {
+            "v-form": form,
+            "v-messageBox": messageBox
+        },
+        data() {
+            return {
+                onlineState: false,
+                selected: true,
+                data: {}
+            };
+        },
+        methods: {
+            submitData() {
+                this.$refs.form.submit("toPerfect");
+            },
+            resetData() {
+                Object.assign(this.$data, this.$options.data());
+                this.$refs.form.resetData();
+            },
+            async loan() {
+                let res = await this.$refs.form.submit();
+                if (res) {
+                   /* if (res.openInform == 1) {//分发给“微店金融线索”的就弹窗提示会有人打电话
+                        this.data = res;
+                        this.$refs.messageBox.popupVisible = true;
+                        return;
+                    }*/
+                    if (res.openInform==1||res.adPage) {//分发给“微店金融线索”的就弹窗提示会有人打电话
+                        this.data = res;
+                        this.$refs.messageBox.popupVisible = true;
+                        this.$refs.messageBox.autoLocation();
+                        return;
+                    }
+                    MtaH5.clickStat("5", {channel: idList.channelName + "：" + idList.channelChildName});
+                    _paq.push(["trackEvent", "跳转成功页面", idList.channelName + "：" + idList.channelChildName]);
+                    this.$router.push("/success");
+                }
+            }
+        },
+        created() {
+            if (this.$api.isBaidu()) document.title = "";
+            this.$api.vkcPost("supermarketloan/eventmarket/onlineState", {...idList}).then(res => {
+                res.onlineState === "1" ? (this.onlineState = true) : ""; //0使用中  1已禁用
+                idList.channelChildName = res.channelChildName || "";
+                idList.channelName = res.channelName || "";
+                MtaH5.clickStat("1", {channel: idList.channelName + "：" + idList.channelChildName});
+                _paq.push(["trackEvent", "渠道统计", res.channelName + "：" + idList.channelChildName]);
+            });
+        }
+    };
+</script>
+
+
+
+
+
+

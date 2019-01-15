@@ -1,0 +1,351 @@
+<template>
+    <div>
+        <ul class="main-form">
+            <li class="form-item flex">
+                <label class="form-item-title">借款金额</label>
+                <input type="tel" maxlength="2" v-model="formData.amount" placeholder="请输入借款金额" class="form-item-input"
+                       :class="{'amount-input':formData.amount!==''}">
+                <span class="amount-unit">万元</span>
+            </li>
+            <li class="form-item flex phone-item">
+                <label class="form-item-title">您的手机</label>
+                <input type="tel" maxlength="11" v-model.trim="formData.phone" placeholder="请输入您的手机号"
+                       class="form-item-input" @input="setCustomPhone(formData.phone)">
+            </li>
+            <li class="form-item flex align-middle">
+                <label class="form-item-title">您的姓名</label>
+                <input type="text" v-model.trim="formData.name" placeholder="请输入您的姓名" class="form-item-input"
+                       @blur="setCustomName(formData.name)">
+                <div class="flex sex-switch">
+                    <label>
+                        <input class="sex-switch-radio" type="radio" value="男" v-model="formData.sex"
+                               style="display:none">
+                        <span class="flex flex-center slide-block">先生</span>
+                    </label>
+                    <label>
+                        <input class="sex-switch-radio" type="radio" value="女" v-model="formData.sex"
+                               style="display:none">
+                        <span class="flex flex-center slide-block">女士</span>
+                    </label>
+                </div>
+            </li>
+            <!-- <div v-if="showflag"> -->
+            <div class="select-item form-item flex">
+                <label class="form-item-title">城市</label>
+                <input type="text" v-model="formData.cityDowntown" @click="$refs.citypage.open()" readonly
+                       onfocus="this.blur()" placeholder="请选择城市" class="form-item-input">
+            </div>
+            <li class="select-item form-item flex" @click="pickState='profession';popupSelect=true">
+                <label class="form-item-title">您的职业</label>
+                <input type="text" v-model="formData.profession" placeholder="请选择您的职业类型" readonly onfocus="this.blur()"
+                       class="form-item-input">
+            </li>
+            <li class="select-item form-item flex" @click="pickState='monthlySalary';popupSelect=true">
+                <label class="form-item-title">月收入</label>
+                <input type="text" v-model="formData.monthlySalary" placeholder="请选择月收入" readonly onfocus="this.blur()"
+                       class="form-item-input">
+            </li>
+            <!-- 生日选择 -->
+            <li class="select-item form-item flex" @click="$refs.picker.open()">
+                <label class="form-item-title">您的生日</label>
+                <input type="text" v-model="formData.birthDate" placeholder="请选择您的生日" readonly onfocus="this.blur()"
+                       class="form-item-input">
+            </li>
+            <!-- </div> -->
+
+        </ul>
+        <div class="extra-info" v-show="showExtraInfo">
+            <p class="extra-info-tip">选择附属信息，提高你的贷款成功率（可多选）</p>
+            <ul>
+                <li v-for="(item,key) in extraInfo" :key="key" class="extra-item">
+                    <label>
+                        <input type="checkbox" :value="item.value" v-model="formData.checkedExtraInfo"
+                               class="extra-info-checkbox" style="display:none">
+                        <span class="extra-txt">{{item.text}}</span>
+                    </label>
+                </li>
+            </ul>
+        </div>
+        <!-- 各下拉选择框 -->
+        <mt-popup v-model="popupSelect" position="bottom">
+           <!-- <mt-picker :slots="slots.monthlySalary" ref="mtPicker" showToolbar @change="onValuesChange"
+                       v-show="pickState==='monthlySalary'">
+                <div class="toolbar" @click="popupSelect=false">确定</div>
+            </mt-picker>-->
+            <mt-picker :slots="slots.monthlySalary" ref="mtPickerSalary"  showToolbar
+                       v-show="pickState==='monthlySalary'">
+                <div class="toolbar" @click="onComfirmChange">确定</div>
+            </mt-picker>
+           <!-- <mt-picker :slots="slots.profession" ref="mtPicker" showToolbar @change="onValuesChange"
+                       v-show="pickState==='profession'">
+                <div class="toolbar" @click="popupSelect=false">确定</div>
+            </mt-picker>-->
+            <mt-picker :slots="slots.profession"  ref="mtPickerProfession" showToolbar
+                       v-show="pickState==='profession'">
+                <div class="toolbar" @click="onComfirmChange">确定</div>
+            </mt-picker>
+        </mt-popup>
+        <!-- 城市选择页 -->
+        <jb-linkageCity v-model="formData.cityDowntown" ref="citypage"></jb-linkageCity>
+        <!-- 时间选择框 -->
+        <mt-datetime-picker ref="picker" type="date" v-model="formData.birthDatePick" cancelText=""
+                            :visibleItemCount="5" :startDate="new Date('1960')" :endDate="new Date(2000,11,31)"
+                            @confirm="handleChange" year-format="{value} 年" month-format="{value} 月"
+                            date-format="{value} 日"></mt-datetime-picker>
+    </div>
+</template>
+
+<script>
+    import jsonData from "@/assets/form.json";
+
+    export default {
+        data() {
+            return {
+                slots: jsonData.selectItem,
+                extraInfo: jsonData.extraInfo,
+                pickState: "",
+                popupSelect: false,
+                timer1: "",
+                applyId: "",
+                formData: {
+                    phone: "",
+                    amount: 10,
+                    applyAmount: "",
+                    applyDeadline: "24",
+                    applyDeadlineUnit: "月",
+                    name: "",
+                    sex: "男",
+                    birthDate: "",
+                    birthDatePick: "1980-01-01",
+                    cityCode: "",
+                    cityDowntown: "",
+                    monthlySalary: "",
+                    profession: "",
+                    haveHouseProperty: "",
+                    automobileAssets: "",
+                    socialSecurity: "",
+                    accFund: "",
+                    creditCard: "",
+                    lifeInsurance: "",
+                    loanRecord: "",
+                    checkedExtraInfo: [],
+                    idCard: ""
+                }
+            };
+        },
+        watch: {
+            "formData.checkedExtraInfo"(n) {
+                if (n.length <= 0) return;
+                if (this.timer1) window.clearTimeout(this.timer1);
+                this.timer1 = setTimeout(() => {
+                    let data = {},
+                        matomoData = [];
+                    this.extraInfo.forEach(v => {
+                        data[v.value] = "无";
+                    });
+                    n.forEach(v => {
+                        data[v] = "有";
+                        matomoData.push(this.changeCNinfo(v));
+                    });
+                    this.$api.timelySubmit(data);
+                    _paq.push(["trackEvent", "自定义变量", "附属信息", matomoData]);
+                }, 1000);
+            },
+            "formData.profession"(n) {
+                if (n) {
+                    this.$api.timelySubmit({profession: n});
+                    _paq.push(["trackEvent", "自定义变量", "职业", n]);
+                }
+            },
+            "formData.amount"(n) {
+                this.$emit("loanAmount", {amount: n, applyDeadline: this.formData.applyDeadline});
+                if (n) {
+                    this.$api.timelySubmit({applyAmount: String(n * 10000)});
+                    _paq.push(["trackEvent", "自定义变量", "借款金额（万）", n]);
+                }
+            },
+            "formData.sex"(n) {
+                if (n) {
+                    this.$api.timelySubmit({sex: n});
+                    _paq.push(["trackEvent", "自定义变量", "性别", n]);
+                }
+            },
+            "formData.applyDeadline"(n) {
+                this.$emit("loanAmount", {amount: this.formData.amount, applyDeadline: n});
+                if (n) {
+                    this.$api.timelySubmit({applyDeadline: n});
+                    _paq.push(["trackEvent", "自定义变量", "申请期限（月）", n]);
+                }
+            },
+            "formData.cityDowntown"(n) {
+                if (n) {
+                    this.$api.timelySubmit({cityDowntown: n});
+                    _paq.push(["trackEvent", "自定义变量", "城市", n]);
+                }
+            },
+            "formData.birthDate"(n) {
+                if (n) {
+                    this.$api.timelySubmit({birthDate: n});
+                    _paq.push(["trackEvent", "自定义变量", "生日", n]);
+                }
+            },
+            "formData.monthlySalary"(n) {
+                if (n) {
+                    this.$api.timelySubmit({monthlySalary: n});
+                    _paq.push(["trackEvent", "自定义变量", "月收入", n]);
+                }
+            }
+        },
+        computed: {
+            // showflag() {
+            //     return idList.channelChildId !== "bdxxl4001";
+            // },
+            showExtraInfo() {
+                return this.checkInfo() === true;
+            }
+        },
+        methods: {
+            changeCNinfo(key) {
+                switch (key) {
+                    case "haveHouseProperty":
+                        return "我有房";
+                    case "automobileAssets":
+                        return "我有车";
+                    case "socialSecurity":
+                        return "有社保";
+                    case "accFund":
+                        return "有公积金";
+                    case "creditCard":
+                        return "有信用卡";
+                    case "lifeInsurance":
+                        return "有寿险保单";
+                    case "loanRecord":
+                        return "有贷款记录";
+                    case "weiLidai":
+                        return "有微粒贷";
+                    default:
+                        return "";
+                }
+            },
+            resetData() {
+                Object.assign(this.$data.formData, this.$options.data().formData);
+            },
+            setCustomPhone(val) {
+                if (val.length === 11) {
+                    if (/^1[0-9]{10}$/.test(val)) {
+                        this.$api.timelySubmit({phone: val});
+                        _paq.push(["trackEvent", "自定义变量", "手机号", val]);
+                        ``;
+                    }
+                }
+            },
+            setCustomName(val) {
+                if (val) {
+                    this.$api.timelySubmit({name: val});
+                    _paq.push(["trackEvent", "自定义变量", "称呼", val]);
+                }
+            },
+            /*onValuesChange(picker, values) {
+                if (!this.pickState) return;
+                values[0].includes("请选择") ? (this.formData[this.pickState] = "") : (this.formData[this.pickState] = values[0]);
+            },*/
+            onComfirmChange(){
+                this.popupSelect=false;
+                var value="";
+                if(this.pickState=="profession"){
+                    value=this.$refs.mtPickerProfession.getValues()[0];
+                }else {
+                    value=this.$refs.mtPickerSalary.getValues()[0];
+                }
+                value.includes("请选择") ? (this.formData[this.pickState] = "") : (this.formData[this.pickState] = value);
+            },
+            handleChange(value) {
+                this.formData.birthDate = this.$api.getFormatDate(value, "yyyy-mm-dd");
+            },
+            checkInfo() {
+                if (!this.$api.checkMobile(this.formData.phone)) return "手机号码输入有误";
+                if (!this.$api.checkAmount(this.formData.amount)) return "借款金额输入有误";
+                if (!this.$api.checkName(this.formData.name)) return "姓名输入有误";
+                if (this.formData.cityDowntown === "") return "请选择城市";
+                if (this.formData.profession === "") return "请选择您的职业类型";
+                if (this.formData.monthlySalary === "") return "请选择月收入";
+                if (this.formData.birthDate === "") return "请选择生日";
+                return true;
+            },
+            submit(toPerfect) {
+                let result = this.checkInfo();
+                if (result !== true) {
+                    this.$toast(result);
+                    return;
+                }
+                this.formData.applyAmount = String(this.formData.amount * 10000);
+
+                this.extraInfo.forEach(v => {
+                    this.formData[v.value] = "无";
+                });
+
+                this.formData.checkedExtraInfo.forEach(v => {
+                    this.formData[v] = "有";
+                });
+
+                let param = {
+                    eventMarketId: idList.eventMarketId,
+                    channelId: idList.channelId,
+                    channelChildId: idList.channelChildId,
+                    selectAgreement: this.$parent.selected ? "1" : "0", // 0 未勾选  1勾选
+                    applyId: window.user_applyId || window.sessionStorage.getItem("userApplyId") || "",
+                    ...this.formData
+                };
+
+                if (toPerfect) {
+                    param.applyId = this.applyId;
+                    this.$api.vkcPost("supermarketloan/distribute/loan/toPerfect", param).then(res => {
+                    });
+                    return;
+                }
+                return new Promise(resolve => {
+                    this.$indicator.open({text: "正在提交..."});
+                    this.$api.vkcPost("supermarketloan/distribute/loan/apply", param, "getAllData").then(res => {
+                        if (res.code === "0") {
+                            this.applyId = res.data.applyId;
+                            idList.channelId === "2048" ? this.$api.wechatSubmit() : ""; //微信转化
+                            if (this.$api.isBaidu()) {
+                                //百度转化
+                                window._agl && window._agl.push(["track", ["success", {t: 3}]]);
+                            }
+                            MtaH5.clickStat("2", {channel: idList.channelName + "：" + idList.channelChildName});
+                            _paq.push(["trackEvent", "预约借款按钮", idList.channelName + "：" + idList.channelChildName]); //matomo预约借款按钮统计
+                            this.$indicator.close();
+                            resolve(res.data);
+                        } else if (res.code === "1021") {//1021为重复提单
+                            var _this=this;
+                            this.$repeatMessageBox.open(
+                                {
+                                    message: res.msg,
+                                    callback: () => {
+                                        //重复提单后跳转
+                                        this.$repeatMessageBox.close();
+                                        this.$api.skipTo(res.data, _this.$route.fullPath);
+                                    }
+                                }
+                            );
+                        }
+                        else {
+                            this.$toast({
+                                message: res.msg,
+                                duration: 1500
+                            });
+                        }
+                    });
+                });
+            }
+        },
+        mounted() {
+            this.$nextTick(function () {
+                this.resetData();
+            });
+        }
+    };
+</script>
+
+

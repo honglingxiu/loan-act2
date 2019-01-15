@@ -1,0 +1,97 @@
+<template>
+    <div class="wrapper theme2">
+        <img src="static/img/banner5.jpg" alt="banner" width="100%">
+        <div class="main">
+            <div class="flex align-middle step">
+                <div class="flex-auto relative">
+                    <span class="step-num">1</span>30秒申请
+                </div>
+                <div class="flex-auto relative">
+                    <span class="step-num">2</span>在线审批放款
+                </div>.
+                <div class="flex-auto relative">
+                    <span class="step-num">3</span>无需面审
+                </div>
+            </div>
+            <v-form ref="form"></v-form>
+            <div class="loan-btn" @click="loan()">预约借款</div>
+            <div class="service">
+                <p class="service-txt" @click="$router.push('/serviceyyd')">点击预约借款即同意《易亚贷用户服务协议》</p>
+                <div class="flex flex-center">
+                    <span class="select-icon" :class="{active:selected}" @click="selected=!selected"></span>
+                    <p class="service-txt">申请有礼：送最高100万保额意外险一份</p>
+                </div>
+            </div>
+        </div>
+        <p class="tiptxt">深圳市易网联科技有限公司</p>
+        <p class="tiptxt">粤ICP备 17002348号-2</p>
+        <p class="tiptxt">市场有风险，选择需谨慎</p>
+        <v-messageBox :data="data" ref="messageBox" />
+        <mt-popup v-model="onlineState" popup-transition="popup-fade" closeOnClickModal class="tipbox">活动已结束</mt-popup>
+    </div>
+</template>
+
+<script>
+import form from "./form";
+import messageBox from "../message-box";
+export default {
+    name: "Activity5",
+    components: {
+        "v-form": form,
+        "v-messageBox": messageBox
+    },
+    data() {
+        return {
+            onlineState: false,
+            selected: true,
+            data: {}
+        };
+    },
+    methods: {
+        submitData() {
+            this.$refs.form.submit("toPerfect");
+        },
+        resetData() {
+            Object.assign(this.$data, this.$options.data());
+            this.$refs.form.resetData();
+        },
+        async loan() {
+            let res = await this.$refs.form.submit();
+            if (res) {
+                if(res.openInform==1){//分发给“微店金融线索”的就弹窗提示会有人打电话
+                    this.data = res;
+                    this.$refs.messageBox.popupVisible = true;
+                    return;
+                }
+                if (res.adPage) {
+                    this.data = res;
+                    this.$refs.messageBox.popupVisible = true;
+                    this.$refs.messageBox.autoLocation();
+                    return;
+                }
+                MtaH5.clickStat("5", { channel: idList.channelName + "：" + idList.channelChildName });
+                _paq.push(["trackEvent", "跳转成功页面", idList.channelName + "：" + idList.channelChildName]);
+                this.$router.push("/success");
+            }
+        }
+    },
+    created() {
+        this.$api.vkcPost("supermarketloan/eventmarket/onlineState", { ...idList }).then(res => {
+            res.onlineState === "1" ? (this.onlineState = true) : ""; //0使用中  1已禁用
+            idList.channelChildName = res.channelChildName || "";
+            idList.channelName = res.channelName || "";
+            MtaH5.clickStat("1", { channel: idList.channelName + "：" + idList.channelChildName });
+            _paq.push(["trackEvent", "渠道统计", res.channelName + "：" + idList.channelChildName]);
+        });
+    }
+};
+</script>
+
+
+
+
+
+
+
+
+
